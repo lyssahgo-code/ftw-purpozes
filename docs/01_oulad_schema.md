@@ -1,14 +1,5 @@
 # Modelling Documentation
 
-test schema only. all tables were derived from **Mart**:
-- `group1_fact_assessment`
-- `group1_fact_vle_interactions`
-- `group1_dim_assessment`
-- `group1_dim_course`
-- `group1_dim_date`
-- `group1_dim_student`
-- `group1_dim_vle`
-
 goal is to design a star schema:
 - fact tables: actual measures (scores, clicks, etc)
 - dimension tables: only connecting to fact tables. *with own surrogate key if possible*
@@ -20,12 +11,12 @@ goal is to design a star schema:
 
 | Column | Type | Notes / Links |
 |--------|------|---------------|
-| id_student | INT32 | FK → `dim_student.studentkey` |
-| id_assessment | INT32 | FK → `dim_assessment.assessmentkey` |
-| code_module | Nullable STRING | FK → `dim_course.code_module` |
-| code_presentation | Nullable STRING | FK → `dim_course.code_presentation` |
-| date_key | INT32 | FK → `dim_date.datekey` |
-| score | INT32 | Score student got |
+| studentkey | INT32 | FK → `dim_student.studentkey` |
+| assessmentkey | INT32 | FK → `dim_assessment.assessmentkey` |
+| code_module | STRING | FK → `dim_course.code_module`, `dim_vle.code_module` |
+| code_presentation | STRING | FK → `dim_course.code_presentation`, `dim_date.code_presentation`, `dim_vle.code_presentation` |
+| datekey | INT32 | FK → `dim_date.datekey` |
+| score | INT32 | Measure: student score |
 
 ---
 
@@ -34,12 +25,12 @@ goal is to design a star schema:
 
 | Column | Type | Notes / Links |
 |--------|------|---------------|
-| id_student | INT32 | FK → `dim_student.studentkey` |
-| id_site | INT32 | FK → `dim_vle.vlekey` |
-| code_module | Nullable STRING | FK → `dim_course.code_module` |
-| code_presentation | Nullable STRING | FK → `dim_course.code_presentation` |
-| date_key | INT32 | FK → `dim_date.datekey` |
-| sum_click | INT32 | Total clicks/interactions |
+| studentkey | INT32 | FK → `dim_student.studentkey` |
+| vlekey | INT32 | FK → `dim_vle.vlekey` |
+| code_module | STRING | FK → `dim_course.code_module`, `dim_vle.code_module` |
+| code_presentation | STRING | FK → `dim_course.code_presentation`, `dim_date.code_presentation`, `dim_vle.code_presentation` |
+| datekey | INT32 | FK → `dim_date.datekey` |
+| sum_click | INT32 | Measure: VLE interactions |
 
 ---
 
@@ -51,11 +42,11 @@ goal is to design a star schema:
 | Column | Type | Notes |
 |--------|------|-------|
 | assessmentkey | INT32 | PK |
-| code_module | Nullable STRING | Links to course |
-| code_presentation | Nullable STRING | Links to course |
-| assessment_type | Nullable STRING | TMA, exam, etc. |
-| days_since_code_presentation | INT32 | Days offset from start |
-| weight | INT32 | Weight in grade calc |
+| code_module | STRING | Links to course |
+| code_presentation | STRING | Links to course |
+| assessment_type | STRING | TMA, exam, etc. |
+| days_since_code_presentation | INT32 | Offset from module start |
+| weight | FLOAT | Weight in grade calculation |
 
 ---
 
@@ -64,8 +55,8 @@ goal is to design a star schema:
 
 | Column | Type | Notes |
 |--------|------|-------|
-| code_module | Nullable STRING | PK (with code_presentation) |
-| code_presentation | Nullable STRING | PK (with code_module) |
+| code_module | STRING | PK (together with code_presentation) |
+| code_presentation | STRING | PK (together with code_module) |
 | module_presentation_length | INT32 | Length of presentation |
 
 ---
@@ -75,12 +66,12 @@ goal is to design a star schema:
 
 | Column | Type | Notes |
 |--------|------|-------|
-| code_presentation | Nullable STRING | Link to course presentation |
+| code_presentation | STRING | Link to course |
 | datekey | INT32 | PK |
 | presentation_year | INT32 | Year |
-| presentation_semester | STRING | Semester (Jan, Oct) |
-| year_completed | Nullable UINT16 | Year completed |
-| months_since_start | Nullable INT64 | Months since start |
+| presentation_semester | STRING | Semester (Spring/Autumn) |
+| year_completed | UINT16 | Nullable |
+| months_since_start | INT64 | Nullable |
 
 ---
 
@@ -93,12 +84,12 @@ goal is to design a star schema:
 | gender | STRING |  |
 | region | STRING |  |
 | education_level | STRING |  |
-| imd_band | Nullable STRING | Deprivation index band |
-| age_band | Nullable STRING | Age group |
-| num_of_prev_attempts | INT32 | How many attempts before |
-| studied_credits | INT32 | Total credits |
-| has_disability | Nullable BOOL | Disability status |
-| final_result | Nullable STRING | Pass/Fail/Withdrawn |
+| imd_band | STRING | Nullable |
+| age_band | STRING | Nullable |
+| num_of_prev_attempts | INT32 |  |
+| studied_credits | INT32 |  |
+| has_disability | BOOL | Nullable |
+| final_result | STRING | Nullable (Pass/Fail/Withdrawn/Distinction) |
 
 ---
 
@@ -107,32 +98,34 @@ goal is to design a star schema:
 
 | Column | Type | Notes |
 |--------|------|-------|
-| vlekey | Nullable INT64 | PK |
-| code_module | Nullable STRING | Link to course |
-| code_presentation | Nullable STRING | Link to course |
-| activity_type | Nullable STRING | e.g. forum, quiz |
+| vlekey | INT64 | PK |
+| code_module | STRING | Link to course |
+| code_presentation | STRING | Link to course |
+| activity_type | STRING | e.g. forum, quiz |
 
 ---
 
 ## Relationships
 
 ### fact_assessments
-- **id_student** → joins to `dim_student.studentkey`
-- **id_assessment** → joins to `dim_assessment.assessmentkey`
-- **code_module** → shared key, joins to `dim_assessment`, `dim_course`, `dim_vle`
-- **code_presentation** → shared key, joins to `dim_assessment`, `dim_course`, `dim_date`, `dim_vle`
-- **date_key** → joins to `dim_date.datekey`
-- **score** → main measure for assessment performance
+- **studentkey** → `dim_student.studentkey`  
+- **assessmentkey** → `dim_assessment.assessmentkey`  
+- **code_module** → shared key to: `dim_assessment.code_module`, `dim_course.code_module`, `dim_vle.code_module`  
+- **code_presentation** → shared key to: `dim_assessment.code_presentation`, `dim_course.code_presentation`, `dim_date.code_presentation`, `dim_vle.code_presentation`  
+- **datekey** → `dim_date.datekey`  
+- **score** → main measure for assessment performance  
 
 ---
 
 ### fact_vle_interactions
-- **id_student** → joins to `dim_student.studentkey`
-- **id_site** → joins to `dim_vle.vlekey`
-- **code_module** → shared key, joins to `dim_assessment`, `dim_course`, `dim_vle`
-- **code_presentation** → shared key, joins to `dim_assessment`, `dim_course`, `dim_date`, `dim_vle`
-- **date_key** → joins to `dim_date.datekey`
-- **sum_click** → god measure (main metric of engagement)
+- **studentkey** → `dim_student.studentkey`  
+- **vlekey** → `dim_vle.vlekey`  
+- **code_module** → shared key to: `dim_assessment.code_module`, `dim_course.code_module`, `dim_vle.code_module`  
+- **code_presentation** → shared key to: `dim_assessment.code_presentation`, `dim_course.code_presentation`, `dim_date.code_presentation`, `dim_vle.code_presentation`  
+- **datekey** → `dim_date.datekey`  
+- **sum_click** → main metric of student engagement  
+
+---
 
 ### Quick Takeaways
 - Both fact tables carry `code_module` + `code_presentation`, which act as **shared foreign keys** across multiple dims
@@ -143,78 +136,81 @@ goal is to design a star schema:
 
 ```mermaid
 erDiagram
-  FACT_ASSESSMENTS {
-    int id_student
-    int id_assessment
-    string code_module
-    string code_presentation
-    int date_key
-    int score
-  }
+    %% Fact Tables
+    FACT_ASSESSMENTS {
+        Int64 StudentKey FK
+        Int64 AssessmentKey FK
+        String code_module
+        String code_presentation
+        Int64 DateKey FK
+        Int64 is_banked
+        Int64 score
+    }
 
-  FACT_VLE_INTERACTIONS {
-    int id_student
-    int id_site
-    string code_module
-    string code_presentation
-    int date_key
-    int sum_click
-  }
+    FACT_VLE_INTERACTIONS {
+        Int64 StudentKey FK
+        Int64 VLEKey FK
+        String code_module
+        String code_presentation
+        Int64 DateKey FK
+        Int64 sum_click
+    }
 
-  DIM_STUDENT {
-    int studentkey
-    string gender
-    string region
-    string education_level
-    string imd_band
-    string age_band
-    int num_of_prev_attempts
-    int studied_credits
-    bool has_disability
-    string final_result
-  }
+    %% Dimension Tables
+    DIM_STUDENT_DEMOGRAPHICS {
+        Int64 StudentKey PK
+        String gender
+        String region
+        String education_level
+        String imd_band
+        String age_band
+        Int64 has_disability
+    }
 
-  DIM_ASSESSMENT {
-    int assessmentkey
-    string code_module
-    string code_presentation
-    string assessment_type
-    int days_since_code_presentation
-    int weight
-  }
+    DIM_STUDENT_MODULE {
+        Int64 StudentKey PK
+        String code_module
+        String code_presentation
+        Int64 num_of_prev_attempts
+        Int64 studied_credits
+        String final_result
+    }
 
-  DIM_COURSE {
-    string code_module
-    string code_presentation
-    int module_presentation_length
-  }
+    DIM_COURSE {
+        String code_module PK
+        String code_presentation PK
+        Int64 module_presentation_length
+    }
 
-  DIM_DATE {
-    string code_presentation
-    int datekey
-    int presentation_year
-    string presentation_semester
-    int year_completed
-    int months_since_start
-  }
+    DIM_ASSESSMENT {
+        Int64 AssessmentKey PK
+        String code_module
+        String code_presentation
+        String assessment_type
+        Int32 days_since_code_presentation
+        Float64 weight
+    }
 
-  DIM_VLE {
-    int vlekey
-    string code_module
-    string code_presentation
-    string activity_type
-  }
+    DIM_DATE {
+        Int64 DateKey PK
+        String code_presentation
+        Int32 presentation_year
+        String presentation_semester
+        Int32 year_completed
+        Int32 months_since_start
+    }
 
-  FACT_ASSESSMENTS }o--|| DIM_STUDENT : "id_student = studentkey"
-  FACT_ASSESSMENTS }o--|| DIM_ASSESSMENT : "id_assessment = assessmentkey"
-  FACT_ASSESSMENTS }o--|| DIM_COURSE : "code_module, code_presentation"
-  FACT_ASSESSMENTS }o--|| DIM_DATE : "date_key = datekey"
-  FACT_ASSESSMENTS }o--|| DIM_VLE : "code_module, code_presentation"
+    %% Relationships
+    FACT_ASSESSMENTS ||--o{ DIM_STUDENT_DEMOGRAPHICS : "StudentKey"
+    FACT_ASSESSMENTS ||--o{ DIM_STUDENT_MODULE : "StudentKey"
+    FACT_ASSESSMENTS ||--o{ DIM_ASSESSMENT : "AssessmentKey"
+    FACT_ASSESSMENTS ||--o{ DIM_DATE : "DateKey"
 
-  FACT_VLE_INTERACTIONS }o--|| DIM_STUDENT : "id_student = studentkey"
-  FACT_VLE_INTERACTIONS }o--|| DIM_VLE : "id_site = vlekey"
-  FACT_VLE_INTERACTIONS }o--|| DIM_COURSE : "code_module, code_presentation"
-  FACT_VLE_INTERACTIONS }o--|| DIM_DATE : "date_key = datekey"
-  FACT_VLE_INTERACTIONS }o--|| DIM_ASSESSMENT : "code_module, code_presentation"
+    FACT_VLE_INTERACTIONS ||--o{ DIM_STUDENT_DEMOGRAPHICS : "StudentKey"
+    FACT_VLE_INTERACTIONS ||--o{ DIM_DATE : "DateKey"
+    FACT_VLE_INTERACTIONS ||--o{ DIM_COURSE : "code_module + code_presentation"
+
+    DIM_STUDENT_MODULE ||--o{ DIM_COURSE : "code_module + code_presentation"
+
 
 
