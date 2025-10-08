@@ -169,8 +169,8 @@ erDiagram
 
     DIM_STUDENT_MODULE {
         Int64 StudentKey PK
-        String code_module
-        String code_presentation
+        String code_module FK
+        String code_presentation FK
         Int64 num_of_prev_attempts
         Int64 studied_credits
         String final_result
@@ -184,8 +184,8 @@ erDiagram
 
     DIM_ASSESSMENT {
         Int64 AssessmentKey PK
-        String code_module
-        String code_presentation
+        String code_module FK
+        String code_presentation FK
         String assessment_type
         Int32 days_since_code_presentation
         Float64 weight
@@ -193,7 +193,7 @@ erDiagram
 
     DIM_DATE {
         Int64 DateKey PK
-        String code_presentation
+        String code_presentation FK
         Int32 presentation_year
         String presentation_semester
         Int32 year_completed
